@@ -951,7 +951,7 @@ function(require,exports,module){
 
 });register.call(this,4,{"coffee-script":3,"./codeck":2},
 function(require,exports,module){
-// Boiler file: js/main.js
+// Boiler file: js/main
 require('coffee-script', true);
 var CODECK = require('./codeck');
 
