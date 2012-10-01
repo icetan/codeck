@@ -1,7 +1,6 @@
 require('coffee-script', true);
-var CODECK = require('./codeck');
+var test = require('./test');
 
 module.exports = function (container) {
-  this.codeck = new CODECK(container);
-  this.codeck.start();
+  test(container);
 };

@@ -1,6 +1,16 @@
-class Loop extends Code
-  constructor: (code) ->
-    @mute = off
-    @compile code
+{Patch} = require './patch'
 
-  run: (meta) -> @fn meta if not @mute
+class Loop extends Patch
+  mute: off
+
+  run: (context) -> @fn(context) if not @mute
+
+
+createLoopContext = (patchContext) ->
+  context =
+    frame: 0
+    time: 0
+  context[k] = v for k, v of patchContext
+  context
+
+module.exports = {Loop, createLoopContext}

@@ -1,8 +1,12 @@
 THREE = require '../lib/three.min', 'THREE'
+{Patch, createPatchContext} = require './patch'
+{Loop, createLoopContext} = require './loop'
 
 class CODECK
   constructor: (container) ->
-    @meta = {}
+    @shapes = {}
+    @patches = []
+    @loops = []
     # set the scene size
     @WIDTH = container.offsetWidth
     @HEIGHT = container.offsetHeight
@@ -30,42 +34,15 @@ class CODECK
     # attach the render-supplied DOM element
     container.appendChild(@renderer.domElement)
 
-    # create the sphere's material
-    #sphereMaterial = new THREE.MeshLambertMaterial({ color: 0xCC0000 })
-    wireframeMaterial = new THREE.MeshBasicMaterial(
-      color: 0xffffff
-      #wireframe: true
-      transparent: true
-      shading: THREE.FlatShading
-      vertexColors: THREE.VertexColors
-    )
-    #multiMaterial = [ sphereMaterial , wireframeMaterial ]
-
-    # set up the sphere vars
-    radius = 50
-    segments = 16
-    rings = 16
-
-    # create a new mesh with sphere geometry -
-    # we will cover the sphereMaterial next!
-    @sphere = new THREE.Mesh(
-    #new THREE.SceneUtils.createMultiMaterialObject(
-      #new THREE.SphereGeometry(radius, segments, rings),
-      new THREE.IcosahedronGeometry( 40, 4 ),
-      wireframeMaterial)
-    @sphere.flipSided = yes
-    # add the sphere to the scene
-    @scene.add(@sphere)
-
     # create the plane's material
-    segments = 100
-    segmentsHalf = segments/2
-    planeMaterial = new THREE.MeshLambertMaterial({ color: 0xCC6600 })
-    planeGeometry = new THREE.PlaneGeometry(200, 200, segments-1, segments-1)
+    #segments = 100
+    #segmentsHalf = segments/2
+    #planeMaterial = new THREE.MeshLambertMaterial({ color: 0xCC6600 })
+    #planeGeometry = new THREE.PlaneGeometry(200, 200, segments-1, segments-1)
 
-    plane = new THREE.Mesh(planeGeometry, planeMaterial)
-    plane.geometry.dynamic = true
-    plane.matrixAutoUpdate = false
+    #plane = new THREE.Mesh(planeGeometry, planeMaterial)
+    #plane.geometry.dynamic = true
+    #plane.matrixAutoUpdate = false
 
     # add the plane to the scene
     #scene.add(plane)
@@ -89,6 +66,17 @@ class CODECK
     # create a Ray with origin at the mouse position
     #   and direction into the scene (camera direction)
     @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
+    @patchContext = createPatchContext @scene, @camera
+    @loopContext = createLoopContext @patchContext
+
+  runLoops: -> codeLoop.run(@loopContext) for codeLoop in @loops
+
+  addPatch: (patch) ->
+    @patches.push patch
+    patch.run @patchContext
+
+  addLoop: (codeLoop) ->
+    @loops.push codeLoop
 
   # draw!
   render: ->
@@ -115,39 +103,14 @@ class CODECK
   #}
 
   start: ->
-    lightOn = no
-    lightFreq = lightFreq2 = lastLightFreq = 300
-    frame = 1
+    lc = @loopContext
+    timeStart = Date.now()
     animloop = =>
-      @sphere.rotation.z += 1/lightFreq
-      @sphere.rotation.x += 1/lightFreq2
-      @sphere.rotation.y = frame/60
-      # create an array containing all objects in the scene with which the ray intersects
-      vector = new THREE.Vector3( 0, 0, 1 )
-      @projector.unprojectVector( vector, @camera )
-      @ray = new THREE.Ray( @camera.position, vector.subSelf( @camera.position ).normalize() )
-      intersect = @ray.intersectObjects( @scene.children )
-      if frame % lightFreq is 0
-        lastLightFreq = lightFreq
-        lightOn = Math.round(Math.random()*0.6)
-        lightFreq = Math.round(Math.random()*200)+1
-        lightFreq2 = Math.round(Math.random()*200)+1
-        @sphere.material.wireframe = lightOn
-      light = lightOn & (frame/2 % 2)
-      colors = (new THREE.Color(light * 0xffffff) for i in [1..3])
-      for f in @sphere.geometry.faces
-        if f.vertexColors.lolz?
-          f.vertexColors = (new THREE.Color(Math.random() * 0xffffff) for i in [1..3])
-          f.vertexColors.lolz = yes
-        else
-          f.vertexColors = colors
-      if intersect.length > 0
-        intersect[0].face.vertexColors = (new THREE.Color(Math.random() * 0xffffff) for i in [1..3])
-        intersect[0].face.vertexColors.lolz = yes
-        @sphere.geometry.colorsNeedUpdate = yes
+      lc.frame += 1
+      lc.time = Date.now() - timeStart
+      @runLoops()
       @render()
       requestAnimationFrame(animloop)
-      frame += 1
     animloop()
 
 module.exports = CODECK
