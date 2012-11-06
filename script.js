@@ -6159,8 +6159,7 @@ module.exports=CoffeeScript;
 function(require,exports,module){
 // Boiler file: js/patch.coffee
 (function() {
-  var Patch, THREE, createPatchContext, csCompile,
-    __slice = [].slice;
+  var Patch, THREE, createPatchContext, csCompile;
 
   THREE = require('../lib/three.min', 'THREE');
 
@@ -6175,7 +6174,7 @@ function(require,exports,module){
       js = csCompile(code, {
         bare: true
       });
-      return this.fn = eval("f=function(__values__){with(__values__||{}){" + js + "}}");
+      return this.fn = eval("f=function(__v__){with(__v__){" + js + "}}");
     };
 
     Patch.prototype.run = function(meta) {
@@ -6191,17 +6190,28 @@ function(require,exports,module){
   })();
 
   createPatchContext = function(scene, camera) {
-    var context, k, _i, _len, _ref;
+    var context, k, objs, _i, _len, _ref;
+    objs = [];
     context = {
       THREE: THREE,
       scene: scene,
       camera: camera,
-      objs: [],
       lc: {},
+      frame: 0,
+      time: 0,
       projector: new THREE.Projector(),
+      clear: function() {
+        var name, obj, _results;
+        _results = [];
+        for (name in objs) {
+          obj = objs[name];
+          _results.push(this.scene.remove(obj));
+        }
+        return _results;
+      },
       obj: function(name, fn) {
         var obj;
-        obj = this.objs[name];
+        obj = objs[name];
         if (fn != null) {
           fn.call(obj);
         }
@@ -6220,58 +6230,28 @@ function(require,exports,module){
         var obj;
         obj = new THREE.Mesh(new THREE.IcosahedronGeometry(radius || 1, seg || 1), material || this.material(0xffffff, true));
         this.scene.add(obj);
-        return this.objs[name] = obj;
+        return objs[name] = obj;
       },
       box: function(name, width, height, depth, material) {
         var obj;
         obj = new THREE.Mesh(new THREE.CubeGeometry(width || 1, height || 1, depth || 1, 1, 1, 1), material || this.material(0xffffff, true));
         this.scene.add(obj);
-        return this.objs[name] = obj;
+        return objs[name] = obj;
       },
-      color: function() {
-        var args;
-        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        return (function(func, args, ctor) {
-          ctor.prototype = func.prototype;
-          var child = new ctor, result = func.apply(child, args), t = typeof result;
-          return t == "object" || t == "function" ? result || child : child;
-        })(THREE.Color, args, function(){});
+      color: function(c) {
+        return new THREE.Color(c);
       },
-      vec2: function() {
-        var args;
-        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        return (function(func, args, ctor) {
-          ctor.prototype = func.prototype;
-          var child = new ctor, result = func.apply(child, args), t = typeof result;
-          return t == "object" || t == "function" ? result || child : child;
-        })(THREE.Vector2, args, function(){});
+      vec2: function(x, y) {
+        return new THREE.Vector2(x, y);
       },
-      vec3: function() {
-        var args;
-        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        return (function(func, args, ctor) {
-          ctor.prototype = func.prototype;
-          var child = new ctor, result = func.apply(child, args), t = typeof result;
-          return t == "object" || t == "function" ? result || child : child;
-        })(THREE.Vector3, args, function(){});
+      vec3: function(x, y, z) {
+        return new THREE.Vector3(x, y, z);
       },
-      vec4: function() {
-        var args;
-        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        return (function(func, args, ctor) {
-          ctor.prototype = func.prototype;
-          var child = new ctor, result = func.apply(child, args), t = typeof result;
-          return t == "object" || t == "function" ? result || child : child;
-        })(THREE.Vector4, args, function(){});
+      vec4: function(a, b, c, d) {
+        return new THREE.Vector4(a, b, c, d);
       },
-      ray: function() {
-        var args;
-        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        return (function(func, args, ctor) {
-          ctor.prototype = func.prototype;
-          var child = new ctor, result = func.apply(child, args), t = typeof result;
-          return t == "object" || t == "function" ? result || child : child;
-        })(THREE.Ray, args, function(){});
+      ray: function(v1, v2) {
+        return new THREE.Ray(v1, v2);
       }
     };
     _ref = Object.getOwnPropertyNames(Math);
@@ -6294,7 +6274,7 @@ register.call(this,4,{"./patch":3},
 function(require,exports,module){
 // Boiler file: js/loop.coffee
 (function() {
-  var Loop, Patch, createLoopContext,
+  var Loop, Patch,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -6320,22 +6300,8 @@ function(require,exports,module){
 
   })(Patch);
 
-  createLoopContext = function(patchContext) {
-    var context, k, v;
-    context = {
-      frame: 0,
-      time: 0
-    };
-    for (k in patchContext) {
-      v = patchContext[k];
-      context[k] = v;
-    }
-    return context;
-  };
-
   module.exports = {
-    Loop: Loop,
-    createLoopContext: createLoopContext
+    Loop: Loop
   };
 
 }).call(this);
@@ -6344,13 +6310,13 @@ function(require,exports,module){
 function(require,exports,module){
 // Boiler file: js/codeck.coffee
 (function() {
-  var CODECK, Loop, Patch, THREE, createLoopContext, createPatchContext, _ref, _ref1;
+  var CODECK, Loop, Patch, THREE, createPatchContext, _ref;
 
   THREE = require('../lib/three.min', 'THREE');
 
   _ref = require('./patch'), Patch = _ref.Patch, createPatchContext = _ref.createPatchContext;
 
-  _ref1 = require('./loop'), Loop = _ref1.Loop, createLoopContext = _ref1.createLoopContext;
+  Loop = require('./loop').Loop;
 
   CODECK = (function() {
 
@@ -6381,16 +6347,15 @@ function(require,exports,module){
       this.projector = new THREE.Projector();
       this.controls = new THREE.TrackballControls(this.camera, this.renderer.domElement);
       this.patchContext = createPatchContext(this.scene, this.camera);
-      this.loopContext = createLoopContext(this.patchContext);
     }
 
     CODECK.prototype.runLoops = function() {
-      var codeLoop, _i, _len, _ref2, _results;
-      _ref2 = this.loops;
+      var codeLoop, _i, _len, _ref1, _results;
+      _ref1 = this.loops;
       _results = [];
-      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-        codeLoop = _ref2[_i];
-        _results.push(codeLoop.run(this.loopContext));
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        codeLoop = _ref1[_i];
+        _results.push(codeLoop.run(this.patchContext));
       }
       return _results;
     };
@@ -6412,11 +6377,11 @@ function(require,exports,module){
     CODECK.prototype.start = function() {
       var animloop, lc, timeStart,
         _this = this;
-      lc = this.loopContext;
+      lc = this.patchContext;
       timeStart = Date.now();
       animloop = function() {
         lc.frame += 1;
-        lc.time = Date.now() - timeStart;
+        lc.time = (Date.now() - timeStart) / 1000;
         _this.runLoops();
         _this.render();
         return requestAnimationFrame(animloop);
@@ -6448,9 +6413,9 @@ function(require,exports,module){
 
   Loop = require('./loop').Loop;
 
-  patch1 = "lc.lightOn = no\nlc.lightFreq = lc.lightFreq2 = lc.lastLightFreq = 300\nicosphere 'globe', 40, 4, material(0xffffff, false, THREE.VertexColors)";
+  patch1 = "lc.lightOn = no\nlc.lightFreq = lc.lightFreq2 = lc.lastLightFreq = 300\n#icosphere 'globe', 40, 4, material(0xffffff, false, THREE.VertexColors)";
 
-  loop1 = "light = lc.lightOn & (frame/2 % 2)\ncolors = (color(light * 0xffffff) for i in [1..3])\nv = vec3 0, 0, 1\nprojector.unprojectVector(v, camera)\nr = ray camera.position, v.subSelf(camera.position).normalize()\nintersect = r.intersectObjects(scene.children)\nobj 'globe', ->\n  @rotation.z += 1/lc.lightFreq\n  @rotation.x += 1/lc.lightFreq2\n  @rotation.y = frame/60\n  if frame % lc.lightFreq is 0\n    lastLightFreq = lc.lightFreq\n    lc.lightOn = round(random()*0.6)\n    lc.lightFreq = round(random()*200)+1\n    lc.lightFreq2 = round(random()*200)+1\n    @material.wireframe = lc.lightOn\n  for f in @geometry.faces\n    if f.vertexColors.lolz?\n      f.vertexColors = (color(random() * 0xffffff) for i in [1..3])\n      f.vertexColors.lolz = yes\n    else\n      f.vertexColors = colors\n  if intersect.length > 0\n    intersect[0].face.vertexColors = (color(Math.random() * 0xffffff) for i in [1..3])\n    intersect[0].face.vertexColors.lolz = yes\n    @geometry.colorsNeedUpdate = yes";
+  loop1 = "clear()\nbox('cube', 10, 20, 2, new THREE.MeshLambertMaterial({ color: 0x333333 }))\nlight = lc.lightOn & (frame/2 % 2)\ncolors = (color(light * 0xffffff) for i in [1..3])\nv = vec3 0, 0, 1\nprojector.unprojectVector(v, camera)\nr = ray camera.position, v.subSelf(camera.position).normalize()\nintersect = r.intersectObjects(scene.children)\nobj 'cube', ->\n  #@position.x = 10 * sin(frame/100-i*10)\n  #@position.z = 10 * cos frame/100-i*10\n  @rotation.y = time\n  #@rotation.z = frame/60/i\nobj 'globe', ->\n  return\n  @rotation.z += 1/lc.lightFreq\n  @rotation.x += 1/lc.lightFreq2\n  @rotation.y = frame/60\n  if frame % lc.lightFreq is 0\n    lastLightFreq = lc.lightFreq\n    lc.lightOn = round(random()*0.6)\n    lc.lightFreq = round(random()*200)+1\n    lc.lightFreq2 = round(random()*200)+1\n    @material.wireframe = lc.lightOn\n  for f in @geometry.faces\n    if f.vertexColors.lolz?\n      f.vertexColors = (color(random() * 0xffffff) for i in [1..3])\n      f.vertexColors.lolz = yes\n    else\n      f.vertexColors = colors\n  if intersect.length > 0\n    intersect[0].face.vertexColors = (color(random() * 0xffffff) for i in [1..3])\n    intersect[0].face.vertexColors.lolz = yes\n    @geometry.colorsNeedUpdate = yes";
 
   mainPatch = new Patch;
 

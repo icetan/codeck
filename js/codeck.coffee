@@ -1,6 +1,6 @@
 THREE = require '../lib/three.min', 'THREE'
 {Patch, createPatchContext} = require './patch'
-{Loop, createLoopContext} = require './loop'
+{Loop} = require './loop'
 
 class CODECK
   constructor: (container) ->
@@ -67,9 +67,8 @@ class CODECK
     #   and direction into the scene (camera direction)
     @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
     @patchContext = createPatchContext @scene, @camera
-    @loopContext = createLoopContext @patchContext
 
-  runLoops: -> codeLoop.run(@loopContext) for codeLoop in @loops
+  runLoops: -> codeLoop.run(@patchContext) for codeLoop in @loops
 
   addPatch: (patch) ->
     @patches.push patch
@@ -103,11 +102,11 @@ class CODECK
   #}
 
   start: ->
-    lc = @loopContext
+    lc = @patchContext
     timeStart = Date.now()
     animloop = =>
       lc.frame += 1
-      lc.time = Date.now() - timeStart
+      lc.time = (Date.now() - timeStart)/1000
       @runLoops()
       @render()
       requestAnimationFrame(animloop)

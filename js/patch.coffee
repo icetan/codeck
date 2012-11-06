@@ -1,10 +1,11 @@
 THREE = require '../lib/three.min', 'THREE'
 csCompile = require('coffee-script-browser', 'CoffeeScript').compile
 
+
 class Patch
   compile: (code) ->
     js = csCompile code, {bare:yes}
-    @fn = eval "f=function(__values__){with(__values__||{}){#{js}}}"
+    @fn = eval "f=function(__v__){with(__v__){#{js}}}"
 
   # dict meta:
   #   int frame: count
@@ -20,16 +21,20 @@ class Patch
   getCode: -> @fn.toString()
 
 createPatchContext = (scene, camera) ->
+  objs = []
   context =
     THREE: THREE
     scene: scene
     camera: camera
-    objs: []
     lc: {}
-
+    frame: 0
+    time: 0
     projector: new THREE.Projector()
+
+    clear: -> @scene.remove obj for name, obj of objs
+
     obj: (name, fn) ->
-      obj = @objs[name]
+      obj = objs[name]
       fn.call(obj) if fn?
       obj
 
@@ -48,12 +53,10 @@ createPatchContext = (scene, camera) ->
         material or @material(0xffffff, true)
       )
       @scene.add(obj)
-      @objs[name] = obj
+      objs[name] = obj
 
     box: (name, width, height, depth, material) ->
       obj = new THREE.Mesh(
-      #new THREE.SceneUtils.createMultiMaterialObject(
-        #new THREE.SphereGeometry(radius, segments, rings),
         new THREE.CubeGeometry(
           width or 1,
           height or 1,
@@ -62,13 +65,13 @@ createPatchContext = (scene, camera) ->
         material or @material(0xffffff, true)
       )
       @scene.add(obj)
-      @objs[name] = obj
+      objs[name] = obj
 
-    color: (args...) -> new THREE.Color args...
-    vec2: (args...) -> new THREE.Vector2 args...
-    vec3: (args...) -> new THREE.Vector3 args...
-    vec4: (args...) -> new THREE.Vector4 args...
-    ray: (args...) -> new THREE.Ray args...
+    color: (c) -> new THREE.Color c
+    vec2: (x, y) -> new THREE.Vector2 x, y
+    vec3: (x, y, z) -> new THREE.Vector3 x, y, z
+    vec4: (a, b, c, d) -> new THREE.Vector4 a, b, c, d
+    ray: (v1, v2) -> new THREE.Ray v1, v2
   context[k] = Math[k] for k in Object.getOwnPropertyNames(Math)
   context
 
